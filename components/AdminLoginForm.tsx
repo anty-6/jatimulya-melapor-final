@@ -31,8 +31,8 @@ export default function AdminLoginForm() {
     }
 
     const redirectedFrom = searchParams.get("redirectedFrom");
-    router.push(redirectedFrom || "/admin/dashboard");
-    router.refresh();
+    // Gunakan full navigation agar cookie auth langsung terbaca server-side
+    window.location.href = redirectedFrom || "/admin/dashboard";
   }
 
   return (

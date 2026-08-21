@@ -8,17 +8,18 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const supabase = createClient();
-  const { data } = await supabase.auth.getUser();
+  // getSession() baca dari cookie (no network call) — middleware sudah verify auth
+  const { data: { session } } = await supabase.auth.getSession();
 
-  if (!data.user) {
+  if (!session) {
     redirect("/admin/login");
   }
 
-  let adminName = data.user!.email ?? "Admin";
+  let adminName = session.user.email ?? "Admin";
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name")
-    .eq("id", data.user!.id)
+    .eq("id", session.user.id)
     .maybeSingle();
   if (profile?.full_name) adminName = profile.full_name;
 
