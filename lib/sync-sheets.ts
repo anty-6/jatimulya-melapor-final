@@ -56,6 +56,16 @@ export async function syncToSheets() {
   const auth = getAuth();
   const sheets = google.sheets({ version: "v4", auth });
 
+  // Auto-create sheet tab jika belum ada
+  const { data: spreadsheet } = await sheets.spreadsheets.get({ spreadsheetId });
+  const existingSheets = spreadsheet.sheets?.map((s) => s.properties?.title) ?? [];
+  if (!existingSheets.includes(sheetName)) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: { requests: [{ addSheet: { properties: { title: sheetName } } }] },
+    });
+  }
+
   await sheets.spreadsheets.values.clear({
     spreadsheetId,
     range: `${sheetName}!A1:Z10000`,
