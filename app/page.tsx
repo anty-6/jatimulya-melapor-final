@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import TestimonialForm from "@/components/TestimonialForm";
 import { createClient } from "@/lib/supabase/server";
 import { IconReport, IconRefresh, IconCheckCircle } from "@/components/icons";
 
@@ -27,29 +28,16 @@ async function getStats() {
   };
 }
 
-const testimonials = [
-  {
-    quote:
-      "Alhamdulillah, laporan lampu jalan yang mati di RT 04 langsung ditanggapi keesokan harinya.",
-    name: "Bapak Agus Santoso",
-    role: "Warga Dusun 1",
-    initials: "BP",
-  },
-  {
-    quote:
-      "Sistemnya sangat transparan. Kita bisa pantau progres laporan tanpa harus bolak-balik ke kantor desa.",
-    name: "Ibu Siti Darwati",
-    role: "Warga Dusun 2",
-    initials: "SD",
-  },
-  {
-    quote:
-      "Respon admin sangat ramah. Saya melaporkan masalah saluran air dan langsung dikerahkan tim kebersihan.",
-    name: "Andi Nugraha",
-    role: "Pelaku UMKM Desa",
-    initials: "AN",
-  },
-];
+async function getTestimonials() {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("testimonials")
+    .select("id, name, role, rating, message")
+    .eq("is_approved", true)
+    .order("created_at", { ascending: false })
+    .limit(6);
+  return data ?? [];
+}
 
 const steps = [
   {
@@ -75,7 +63,7 @@ const steps = [
 ];
 
 export default async function HomePage() {
-  const stats = await getStats();
+  const [stats, testimonials] = await Promise.all([getStats(), getTestimonials()]);
 
   return (
     <div>
@@ -177,27 +165,45 @@ export default async function HomePage() {
             Kepercayaan warga adalah prioritas utama kami dalam memberikan
             pelayanan terbaik.
           </p>
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {testimonials.map((t) => (
-              <div key={t.name} className="card p-5">
-                <div className="text-sky-500">{"★".repeat(5)}</div>
-                <p className="mt-3 text-sm italic text-gray-700">
-                  &ldquo;{t.quote}&rdquo;
-                </p>
-                <div className="mt-4 flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-xs font-medium text-sky-800">
-                    {t.initials}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">
-                      {t.name}
+
+          {testimonials.length > 0 ? (
+            <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {testimonials.map((t) => {
+                const initials = t.name
+                  .split(" ")
+                  .slice(0, 2)
+                  .map((w: string) => w[0])
+                  .join("")
+                  .toUpperCase();
+                return (
+                  <div key={t.id} className="card p-5">
+                    <div className="text-sky-500">
+                      {"★".repeat(t.rating)}
+                      <span className="text-gray-200">{"★".repeat(5 - t.rating)}</span>
+                    </div>
+                    <p className="mt-3 text-sm italic text-gray-700">
+                      &ldquo;{t.message}&rdquo;
                     </p>
-                    <p className="text-xs text-gray-500">{t.role}</p>
+                    <div className="mt-4 flex items-center gap-2">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-medium text-sky-800">
+                        {initials}
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{t.name}</p>
+                        <p className="text-xs text-gray-500">{t.role}</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="mt-8 text-sm text-gray-400">
+              Belum ada ulasan. Jadilah yang pertama!
+            </p>
+          )}
+
+          <TestimonialForm />
         </div>
       </section>
 

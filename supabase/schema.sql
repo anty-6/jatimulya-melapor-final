@@ -210,6 +210,36 @@ create policy "admin can manage spreadsheet settings"
   using (true) with check (true);
 
 -- ============================================================
+-- 6. Tabel testimoni warga
+-- ============================================================
+create table if not exists public.testimonials (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  role text not null,
+  rating int not null check (rating between 1 and 5),
+  message text not null,
+  is_approved boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table public.testimonials enable row level security;
+
+create policy "public can read approved testimonials"
+  on public.testimonials for select
+  to anon, authenticated
+  using (is_approved = true);
+
+create policy "public can insert testimonials"
+  on public.testimonials for insert
+  to anon, authenticated
+  with check (true);
+
+create policy "admin can manage testimonials"
+  on public.testimonials for all
+  to authenticated
+  using (true) with check (true);
+
+-- ============================================================
 -- Storage bucket untuk bukti foto pengaduan
 -- ============================================================
 insert into storage.buckets (id, name, public)

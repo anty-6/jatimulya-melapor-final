@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(git config:*)",
+      "Bash(git credential-manager:*)",
+      "Bash(git-credential-manager github:*)"
     ]
   }
 }
