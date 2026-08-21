@@ -27,6 +27,12 @@ export async function syncToSheets() {
 
   if (error) throw error;
 
+  // Hitung jumlah kolom foto maksimal dari semua data
+  const maxPhotos = Math.min(
+    Math.max(...(complaints ?? []).map((c) => (c.photo_urls?.length ?? 0)), 0),
+    5
+  );
+
   const header = [
     "ID Laporan",
     "Tanggal",
@@ -38,20 +44,28 @@ export async function syncToSheets() {
     "No. WhatsApp",
     "Status",
     "Update Terakhir",
+    ...Array.from({ length: maxPhotos }, (_, i) => `Foto ${i + 1}`),
   ];
 
-  const rows = (complaints ?? []).map((c) => [
-    c.complaint_number,
-    formatDate(c.created_at),
-    c.category,
-    c.title,
-    c.description,
-    c.location,
-    c.is_anonymous ? "Anonim" : c.reporter_name || "-",
-    c.is_anonymous ? "-" : c.reporter_phone || "-",
-    c.status,
-    formatDate(c.updated_at, true),
-  ]);
+  const rows = (complaints ?? []).map((c) => {
+    const fotoCols = Array.from({ length: maxPhotos }, (_, i) => {
+      const url = c.photo_urls?.[i];
+      return url ? `=IMAGE("${url}")` : "";
+    });
+    return [
+      c.complaint_number,
+      formatDate(c.created_at),
+      c.category,
+      c.title,
+      c.description,
+      c.location,
+      c.is_anonymous ? "Anonim" : c.reporter_name || "-",
+      c.is_anonymous ? "-" : c.reporter_phone || "-",
+      c.status,
+      formatDate(c.updated_at, true),
+      ...fotoCols,
+    ];
+  });
 
   const auth = getAuth();
   const sheets = google.sheets({ version: "v4", auth });
@@ -74,7 +88,7 @@ export async function syncToSheets() {
   await sheets.spreadsheets.values.update({
     spreadsheetId,
     range: `${sheetName}!A1`,
-    valueInputOption: "RAW",
+    valueInputOption: "USER_ENTERED",
     requestBody: { values: [header, ...rows] },
   });
 

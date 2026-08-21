@@ -45,24 +45,37 @@ async function main() {
   if (error) throw error;
   console.log(`✅ ${complaints?.length ?? 0} laporan ditemukan`);
 
+  const maxPhotos = Math.min(
+    Math.max(...(complaints ?? []).map((c: any) => (c.photo_urls?.length ?? 0)), 0),
+    5
+  );
+
   const header = [
     "ID Laporan", "Tanggal", "Kategori", "Judul",
     "Isi Laporan", "Lokasi", "Nama Pelapor", "No. WhatsApp",
     "Status", "Update Terakhir",
+    ...Array.from({ length: maxPhotos }, (_, i) => `Foto ${i + 1}`),
   ];
 
-  const rows = (complaints ?? []).map((c) => [
-    c.complaint_number,
-    formatDate(c.created_at),
-    c.category,
-    c.title,
-    c.description,
-    c.location,
-    c.is_anonymous ? "Anonim" : c.reporter_name || "-",
-    c.is_anonymous ? "-" : c.reporter_phone || "-",
-    c.status,
-    formatDate(c.updated_at, true),
-  ]);
+  const rows = (complaints ?? []).map((c: any) => {
+    const fotoCols = Array.from({ length: maxPhotos }, (_, i) => {
+      const url = c.photo_urls?.[i];
+      return url ? `=IMAGE("${url}")` : "";
+    });
+    return [
+      c.complaint_number,
+      formatDate(c.created_at),
+      c.category,
+      c.title,
+      c.description,
+      c.location,
+      c.is_anonymous ? "Anonim" : c.reporter_name || "-",
+      c.is_anonymous ? "-" : c.reporter_phone || "-",
+      c.status,
+      formatDate(c.updated_at, true),
+      ...fotoCols,
+    ];
+  });
 
   console.log("🔄 Menyambungkan ke Google Sheets...");
   const auth = new google.auth.JWT({ email, key, scopes: ["https://www.googleapis.com/auth/spreadsheets"] });
@@ -83,7 +96,7 @@ async function main() {
   await sheets.spreadsheets.values.update({
     spreadsheetId,
     range: `${sheetName}!A1`,
-    valueInputOption: "RAW",
+    valueInputOption: "USER_ENTERED",
     requestBody: { values: [header, ...rows] },
   });
 
